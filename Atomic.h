@@ -70,11 +70,12 @@ namespace muduo
             系统总是直接从它所在的内存读取数据，
             而不是使用保存在寄存器中的备份。
             /*
-        };// end AtomicIntergeT?
-    }// end detail?
+
+        }; // class AtomicIntergeT
+    } // namespace detail
 
     typedef detail::AtomicIntergeT<int32_t> AtomicInt32;
     typedef detail::AtomicIntergeT<int64_t> AtomicInt64;
-}// end muduo?
+} // namespace muduo
 
 #endif // MUDUO_BASE_ATOMIC_H

@@ -42,8 +42,8 @@ namespace muduo
 
 		const static int kCheckTimeRoll_ = 1024;			// 检查“是否日志滚动”的计时
 		const static int kRollPerSeconds_ = 60*60*24;		// 一天的计时
-	};
-}
+	}; // class LogFile
+} // namespace muduo
 
 #endif // MUDUO_BASE_LOGFILE_H
 
