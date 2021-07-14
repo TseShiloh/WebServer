@@ -8,7 +8,7 @@
 
 namespace muduo
 {
-    class MutexLock : noncopyable
+    class MutexLock : boost::noncopyable
     {
     private:
         pthread_mutex_t mutex_; // 锁对象
@@ -64,7 +64,7 @@ namespace muduo
     class MutexLockGuard : boost::noncopyable
     {
     private:
-       MutexLock&  mutex_;// 此处引用，说明MutexLockGuard这个类并不负责MutexLock类对象mutex_的生存期
+       MutexLock&  mutex_;// 此处用&引用，说明MutexLockGuard这个类并不负责MutexLock类对象mutex_的生存期
 
     public:
         explicit MutexLockGuard(MutexLock& mutex)
