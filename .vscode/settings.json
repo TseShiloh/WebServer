@@ -6,5 +6,6 @@
         "type_traits": "cpp",
         "xtree": "cpp",
         "xutility": "cpp"
-    }
+    },
+    "C_Cpp.dimInactiveRegions": false
 }

@@ -12,12 +12,7 @@
     v(semEmpty)                 p(semFull)无界则删
 */
 
-
 /* 有界缓冲区（条件变量）
-    size
-    semFull(size)
-    semEmpty(0)
-    mutex互斥量
 
     生产者                       消费者
     while(queue.full())无界则删  while(queue.empty())无界则删
