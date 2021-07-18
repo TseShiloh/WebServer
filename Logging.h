@@ -9,7 +9,7 @@
 */
 
 
-#ifndef(MUDUO_BASE_LOGGING_H)
+#ifndef MUDUO_BASE_LOGGING_H
 #define MUDUO_BASE_LOGGING_H
 
 #include <muduo/base/LogStream.h>
@@ -36,20 +36,40 @@ namespace muduo
             const char* data_;
             int size_;
 
+            template<int N>
+            inline SourceFile(const char (&arr)[N])
+                : data_(arr)
+                  size_(N-1)
+            {
+                const
+            }
+
             SourceFile(/* args */);
             ~SourceFile();
         };
-        
-        SourceFile::SourceFile(/* args */)
-        {
-        }
-        
-        SourceFile::~SourceFile()
-        {
-        }
-        
 
-    private:
+        Logger(SourceFile file, int line);
+        Logger(SourceFile file, int line, LogLevel level);
+        Logger(SourceFile file, int line, LogLevel level, const char* func);
+        Logger(SourceFile file ,int line, bool toAbort);
+        ~Logger();
+
+        LogStream& stream() {return impl_.stream_; }// stream实际是放在Impl类里
+        
+        class Impl
+        {
+        public:
+            typedef Logger::LogLevel LogLevel;
+            Impl(LogLevel level, int old_error, const SourceFile& file, int line);
+            void formatTime();
+            void finish();
+
+            Timestamp time_;
+            LogStream stream_;
+            LogLevel level_;
+            int line_;
+            SourceFile basename_;
+        }; // class Impl
 
     }; // class Logger
 
