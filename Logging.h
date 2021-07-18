@@ -29,32 +29,67 @@ namespace muduo
             FATAL,// 5
             NUM_LOG_LEVELS,// 级别的个数，这里刚好等于6
         };
+        
+        class SourceFile
+        {
+        public:
+            const char* data_;
+            int size_;
+
+            SourceFile(/* args */);
+            ~SourceFile();
+        };
+        
+        SourceFile::SourceFile(/* args */)
+        {
+        }
+        
+        SourceFile::~SourceFile()
+        {
+        }
+        
 
     private:
 
     }; // class Logger
 
-    extern Logger::LogLevel g_loglevel;
-
-    inline Logger::LogLevel Logger::logLevel() {
-        return g_logLevel;
-    }
-    
-    #define LOG_TRACE if (muduo::Logger::logLevel() <= muduo::Logger::TRACE) \
-        muduo::Logger(__FILE__, __LINE__, muduo::Logger::TRACE, __func__).stream()
-    #define LOG_DEBUG if (muduo::Logger::logLevel() <= muduo::Logger::DEBUG) \
-        muduo::Logger(_ _FILE__, __LINE__, muduo::Logger::DEBUG, __func__).stream()
-    #define LOG_INFO  if (muduo::Logger::logLevel() <= muduo::Logger::INFO) \
-        muduo::Logger::(__FILE__, __LINE__).stream()
-    #define LOG_WARN muduo::Logger(__FILE__, __LINE__, muduo::Logger::WARN).stream()
-    #define LOG_ERROR muduo::Logger(__FILE__, __LINE__, muduo::Logger::ERROR).stream()
-    #define LOG_FATAL muduo::Logger(__FILE__, __LINE__, muduo::Logger::FATAL).stream()
-    #define LOG_SYSERR muduo::Logger(__FILE__, __LINE__, false).stream()
-    #define LOG_SYSFATAL muduo::Logger(__FILE__, __LINE__, true).stream()
+    Impl impl_;
 
 } // namespace muduo
+extern Logger::LogLevel g_loglevel;
+
+inline Logger::LogLevel Logger::logLevel() {
+    return g_logLevel;
+}
+    
+#define LOG_TRACE if (muduo::Logger::logLevel() <= muduo::Logger::TRACE) \
+    muduo::Logger(__FILE__, __LINE__, muduo::Logger::TRACE, __func__).stream()
+#define LOG_DEBUG if (muduo::Logger::logLevel() <= muduo::Logger::DEBUG) \
+    muduo::Logger(_ _FILE__, __LINE__, muduo::Logger::DEBUG, __func__).stream()
+#define LOG_INFO  if (muduo::Logger::logLevel() <= muduo::Logger::INFO) \
+    muduo::Logger::(__FILE__, __LINE__).stream()
+#define LOG_WARN muduo::Logger(__FILE__, __LINE__, muduo::Logger::WARN).stream()
+#define LOG_ERROR muduo::Logger(__FILE__, __LINE__, muduo::Logger::ERROR).stream()
+#define LOG_FATAL muduo::Logger(__FILE__, __LINE__, muduo::Logger::FATAL).stream()
+#define LOG_SYSERR muduo::Logger(__FILE__, __LINE__, false).stream()
+#define LOG_SYSFATAL muduo::Logger(__FILE__, __LINE__, true).stream()
+
+const char* strerror_tl(int savedErrno);
+
+#define CHECK_NOTNULL(val) \ ::muduo::CheckNotNull(__FIEL__, __LINE__, )
 
 
 #endif // MUDUO_BASE_LOGGING_H
+
+/*
+Logger -> Impl -> LogStream -> operator<<FixedBuffer -> g_output -> g_flush
+
+Logger类内部包装了Impl类，Logger类负责了日志的级别，是最外层的日志类
+Impl类是内部实际的实现，比如如何格式化日志
+借助LogStream来输出日志，输出到缓冲区FixedBuffer
+g_output决定输出到设备还是文件
+g_flush，输出（清空标准输出的缓冲区）
+
+*/
 
 
