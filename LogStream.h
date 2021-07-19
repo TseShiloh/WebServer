@@ -1,3 +1,6 @@
+// 缓冲区类FixedBuffer
+
+
 #ifndef MUDUO_BASE_LOGSTREAM_H
 #define MUDUO_BASE_LOGSTREAM_H
 
@@ -18,11 +21,18 @@ namespace muduo
         const int kSmallBuffer = 4000;
         const int kLargeBuffer = 4000*1000;
 
-        template<int SIZE>
+        template<int SIZE>// SIZE为非类型参数，传递的是一个值
         class FixedBuffer : boost::noncopyable
         {
         private:
             const char* end() const { return data_ + sizeof data_; }
+            // Must be outline function for cookies.
+            static void cookieStart();
+            static void cookieEnd();
+
+            void (*cookie_)();
+            char data_[SIZE];// 缓冲区
+            char* cur_;// 当前指针
 
         public:
             FixedBuffer()
@@ -37,7 +47,11 @@ namespace muduo
             }
 
             void append(const char* buf, size_t len) {
-
+                // FIxME: append partially当前空间不够，自行实现部分添加功能。
+                if (implicit_cast<size_t>(avail()) > len) {// 当前可用空间大于len
+                    memcpy(cur_, buf, len);// 将buf添加进去
+                    cur_ += len;
+                }
             }
 
             const char* data() const { return data_; }
@@ -48,16 +62,17 @@ namespace muduo
             int avail()  const { return static_cast<int>(end() - cur_); }
             void add(size_t len) { cur_ += len; }
 
-            void reset() { cur_ = data; }
-            void bzero() { ::bzero(data_, sizeof data_); }
+            void reset() { cur_ = data; }// 重置，将cur_指向回首地址
+            void bzero() { ::bzero(data_, sizeof data_); }// 将数据清为0
 
             // for used by GDB
-            const char* debugString();
+            const char* debugString();// 在buffer后面加个"\0"，将其当成字符串
             void setCookie(void (*cookie)()) { cookie_ = cookie; }
             // for used by unit test
             string asString() const { return string(data_, length()); }
 
-        };
+        }; // class FixedBuffer
+
     } // namespace detail
 
     class LogStream : boost noncopyable
@@ -74,7 +89,7 @@ namespace muduo
         static const int kMaxNumericSize = 32;
 
     public:
-        typedef detail::FixedBuffer<detail::kSmallBuffer> Buffer;
+        typedef detail::FixedBuffer<detail::kSmallBuffer> Buffer;// 输出时先输出到Buffer这个缓冲区
 
         self& operator<<(bool v) {
             buffer_.append(v ? "1" : "0", 1);

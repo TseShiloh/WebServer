@@ -71,9 +71,10 @@ namespace muduo
             SourceFile basename_;
         }; // class Impl
 
+        Impl impl_;
+        
     }; // class Logger
 
-    Impl impl_;
 
 } // namespace muduo
 extern Logger::LogLevel g_loglevel;
@@ -87,7 +88,7 @@ inline Logger::LogLevel Logger::logLevel() {
 #define LOG_DEBUG if (muduo::Logger::logLevel() <= muduo::Logger::DEBUG) \
     muduo::Logger(_ _FILE__, __LINE__, muduo::Logger::DEBUG, __func__).stream()
 #define LOG_INFO  if (muduo::Logger::logLevel() <= muduo::Logger::INFO) \
-    muduo::Logger::(__FILE__, __LINE__).stream()
+    muduo::Logger::(__FILE__, __LINE__).stream()// 构造匿名的Logger对象调用stream()
 #define LOG_WARN muduo::Logger(__FILE__, __LINE__, muduo::Logger::WARN).stream()
 #define LOG_ERROR muduo::Logger(__FILE__, __LINE__, muduo::Logger::ERROR).stream()
 #define LOG_FATAL muduo::Logger(__FILE__, __LINE__, muduo::Logger::FATAL).stream()
