@@ -128,13 +128,13 @@ namespace muduo
             return *this;
         }
 
-        self& operator<<(const string& v) {
+        self& operator<<(const string& v) {// 短字符优化的字符串
             buffer_.append(v.c_str(), v.size());
             return *this;
         }
 
         #ifndef MUDUO_STD_STRING
-        self& operator<<(const std::string& v) {
+        self& operator<<(const std::string& v) {// STL中的字符串
             buffer_.append(v.c_str(), v.size());
             return *this;
         }
