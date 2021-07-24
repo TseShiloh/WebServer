@@ -11,10 +11,22 @@ using namespace moduo;
 // not thread safe
 class LogFile::File : boost::noncopyable
 {
-public:
-    explicit File(const string& filename) : fp_(::fopen(filename.data(), "ae")), writtenBytes_(0) {
-        assert(fp_);
+private:
+    size_t write(const char* logline, size_t len) {
+#undef fwrite_unlocked
+        return ::fwrite_unlocked(logline, 1, len, fp_);// 用不加锁的方式写入，效率会高一些
+    }
 
+    FILE* fp_;                  // 文件指针fp_
+    char buffer_[64*1024];      // 文件指针fp_的缓冲区buffer_，缓冲区如果超过了64k就会自动flush到文件中
+    size_t writtenBytes_;       // 已经写入的字节数
+
+public:
+    explicit File(const string& filename) 
+        :   fp_(::fopen(filename.data(), "ae")),
+            writtenBytes_(0)
+    {
+        assert(fp_);
         ::setbuffer(fp_, buffer_, sizeof buffer_);
     }
 
@@ -46,17 +58,6 @@ public:
     }
 
     size_t writtenBytes() const { return writtenBytes_; }
-
-private:
-
-    size_t write(const char* logline, size_t len) {
-#undef fwrite_unlocked
-        return ::fwrite_unlocked(logline, 1, len, fp_);
-    }
-
-    FILE* fp_;                  // 文件指针fp_
-    char buffer_[64*1024];      // 文件指针fp_的缓冲区buffer_，缓冲区如果超过了64k就会自动flush到文件中
-    size_t writtenBytes_;       // 已经写入的字节数
 };
 
 LogFile::LogFile(const string& basename, size_t rollSize, bool threadSafe, int flushInterval)

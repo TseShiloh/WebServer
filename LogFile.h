@@ -16,7 +16,8 @@ namespace muduo
 				size_t rollSize,
 				bool threadSafe = true,		// 线程安全默认为true
 				int flushInterval = 3);		// flush的时间间隔为3秒钟
-		~LogFile();
+		
+        ~LogFile();
 
 		void append(const char* logline, int len);		// 将logline这一行长度len添加到日志文件中
 		void flush();		// 清空缓冲区

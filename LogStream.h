@@ -1,6 +1,5 @@
 // 缓冲区类FixedBuffer
 
-
 #ifndef MUDUO_BASE_LOGSTREAM_H
 #define MUDUO_BASE_LOGSTREAM_H
 
@@ -77,7 +76,7 @@ namespace muduo
 
     class LogStream : boost noncopyable
     {
-        typedef LogStream self;
+        typedef LogStream self;// 定义自身
         
     private:
         void staticCheck();
@@ -140,7 +139,7 @@ namespace muduo
         }
         #endif
 
-        self& operator<<(const StringPiece& v) {
+        self& operator<<(const StringPiece& v) {// 也可以吧StringPiece看成字符串
             buffer_.append(v.data(), v.size());
             return *this;
         }
@@ -151,9 +150,25 @@ namespace muduo
 
     };// class LogStream
     
-    
+    class Fmt // : boost::noncopyable
+    {
+    private:
+        char buf_[32];
+        int length_;
+
+    public:
+        template<typename T>
+        Fmt(const char* fmt, T val);// 把整数val按照fmt的格式进行格式化到buf_中
+
+        const char* data() const { return buf_; }
+        int length() const { return length_; }
+    };
+
+    inline LogStream& operaotr<<(LogStream& s, const Fmt& fmt) {
+        s.append(fmt.data(), fmt.length());
+        return s;
+    }
+
 } // namespace muduo
 
-
-
-#endif MUDUO_BASE_LOGSTREAM_H
+#endif // MUDUO_BASE_LOGSTREAM_H

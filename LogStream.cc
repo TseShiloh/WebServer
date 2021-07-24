@@ -12,6 +12,11 @@
 using namespace muduo;
 using namespace muduo::detail;
 
+// 忽略-Wtype-limits
+// 关于diagnostic更多信息，可以查看http://gcc.gnu.org/onlinedocs/gcc/Diagnostic-Pragmas.html
+#pragma GCC diagnostic ignored "-Wtype-limits"
+//#pragma GCC diagnostic error "-Wtype-limits"
+
 namespace muduo
 {
     namespace detail
@@ -36,8 +41,8 @@ namespace muduo
                 *p++ = zero[lsd];
             } while (i != 0);
 
-            if (value < 0) {
-                *p++ = '-';
+            if (value < 0) {    // 负数加负号
+                *p++ = '-';     // 加负号
             }
             *p = '\0';
             std::reverse(buf, p);
@@ -45,7 +50,8 @@ namespace muduo
             return p - buf;
         }
 
-        // uintptr_t对于32平台来说就是unsigned int, 对于64位平台来说unsigned long int
+        // uintptr_t对于32平台来说就是unsigned int, 
+        // 对于64位平台来说unsigned long int
         size_t convertHex(char buf[], uintptr_t value) {
             uintptr_t i = value;
             char* p = buf;
@@ -87,10 +93,10 @@ template class FixedBuffer<kLargeBuffer>;
 
 void LogStream::staticCheck()
 {
-    BOOST_STATIC_ASSERT();
-    BOOST_STATIC_ASSERT();
-    BOOST_STATIC_ASSERT();
-    BOOST_STATIC_ASSERT();
+    BOOST_STATIC_ASSERT(kMaxNumericSize - 10 > std::numeric_limits<double>::digits10);
+    BOOST_STATIC_ASSERT(kMaxNumericSize - 10 > std::numeric_limits<long double>::digits10);
+    BOOST_STATIC_ASSERT(kMaxNumericSize - 10 > std::numeric_limits<long>::digits10);
+    BOOST_STATIC_ASSERT(kMaxNumericSize - 10 > std::numeric_limits<long long>::digits10);
 }
 
 template <typename T>
@@ -98,7 +104,7 @@ void LogStream::formatInteger(T v)
 {
     if (buffer_.avail() >= kMaxNumericSize)
     {
-        size_t len = convert(buffer_.current(), v);
+        size_t len = convert(buffer_.current(), v);// 将整数v转换成字符串存储在buffer_.current()位置
         buffer_.add(len);
     }
 }
@@ -179,9 +185,14 @@ LogStream &LogStream::operator<<(double v)
 template <typename T>
 Fmt::Fmt(const char *fmt, T val)
 {
+    // 断言T是算术类型
+    BOOST_STATIC_ASSERT(boost::is_arithmetic<T> value == true);
+
+    length_ = snprintf(buf_, sizeof buf_, fmt, val);
+    assert(static_cast<size_t>(length_) < sizeof buf_);
 }
 
-// Explicit instantiations
+// Explicit instantiations显式实例化 
 template Fmt::Fmt(const char *fmt, char);
 
 template Fmt::Fmt(const char *fmt, short);
