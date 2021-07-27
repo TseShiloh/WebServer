@@ -27,7 +27,7 @@ Channel::Channel(EverntLoop* loop, int fd__)
       fd_(fd__),
       events_(0),
       revents_(0),
-      index_(-1),
+      index_(-1),// channel还未添加到poll/epoll关注时
       logHup_(true),
       tied_(false),
       eventHandling_(false)

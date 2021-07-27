@@ -32,7 +32,7 @@ namespace muduo
             PollPoller(EventLoop* loop);
             virtual ~PollPoller();
 
-            virtual Timestamp poll();// poll的时候会返回“活动的通道列表”
+            virtual Timestamp poll(int timeoutMs, ChannelList* activeChannels);// poll的时候会返回“活动的通道列表”
             virtual void updateChannel(Channel* channel);
             virtual void removeChannel(Channel* channel);
 

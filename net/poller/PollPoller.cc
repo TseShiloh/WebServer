@@ -20,7 +20,7 @@ PollPoller::~PollPoller()
 }
 
 Timestamp PollPoller::poll(int timeoutMs, ChannelList* activeChannels) {
-    // XX pollfds_ shouldn't change
+    // XXX pollfds_ shouldn't change
     int numEvents = ::poll(&*pollfds_.begin(), pollfds_.size(), timeoutMs);// （数组首地址，大小，timeoutMs）
     Timestamp now(Timestamp::now());// 时间戳
     if (numEvents > 0) {// >0 说明 返回了一些事件
@@ -37,7 +37,7 @@ Timestamp PollPoller::poll(int timeoutMs, ChannelList* activeChannels) {
 }
 
 
-void fillActiveChannels(int numEvents, ChannelList* activeChannels) const {
+void PollPoller::fillActiveChannels(int numEvents, ChannelList* activeChannels) const {
     for (PollFdList::const_iterator pfd = pollfds_.begin(); 
         pfd != pollfds_.end() && numEvents > 0; ++pfd) 
     {
@@ -77,7 +77,7 @@ void PollPoller::updateChannel(Channel* channel) {
         int idx = channel->index();
         assert(idx >= 0 && idx < static_cast<int>(pollfds_.size()));
         struct pollfd& pfd = pollfds_[idx];
-        assert(pfd.fd == channel->fd() || pfd.fd == -channel->fd() - 1);// -channel->fd()-1见下
+        assert(pfd.fd == channel->fd() || pfd.fd == -channel->fd()-1);// -channel->fd()-1见下
         pfd.events = static_cast<short>(channel->events());
         pfd.revents = 0;
         // 将一个通道暂时更改为不关注事件，但不从Poller中移除该通道
@@ -90,7 +90,7 @@ void PollPoller::updateChannel(Channel* channel) {
     }
 }
 
-void removeChannel(Channel* channel) {
+void PollPoller::removeChannel(Channel* channel) {
     // 从通道数组中移除，不关注了
     Poller::assertInLoopThread();
     LOG_TRACE << "fd = " << channel->fd();
@@ -112,7 +112,7 @@ void removeChannel(Channel* channel) {
         int channelAtEnd = pollfds_.back().fd;
         iter_swap(pollfds_.begin() + idx, pollfds_.end() - 1);
         if (channelAtEnd < 0) {// 如果是暂时不关注的通道，则要还原回来
-            channelAtEnd = -channelAtEnd - 1;
+            channelAtEnd = -channelAtEnd-1;
         }
         channels_[channelAtEnd]->set_index(idx);
         pollfds_.pop_back();

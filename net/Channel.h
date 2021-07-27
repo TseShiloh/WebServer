@@ -43,20 +43,20 @@ namespace muduo
             const int   fd_;        // 文件描述符，但不负责关闭该文件描述符
             int         events_;    // 关注的事件
             int         revents_;   // poll/epoll返回的事件
-            int         index_;     // used by Poller.表示在poll的事件数组中的序号
+            int         index_;     // used by Poller.表示在poll的事件数组中的序号 / 在Epoll中表示通道的状态
             bool        logHup_;    // for POLLHUP
 
-            boost::weak_ptr<void> tie_;// 负责生存期的控制
+            boost::weak_ptr<void> tie_; // 负责生存期的控制
             bool tied_;
-            bool eventHandling_;    // 是否处于处理事件中
+            bool eventHandling_;        // 是否处于处理事件中
             ReadEventCallback readCallback_;
             EventCallback writeCallback_;
             EventCallback closeCallback_;
             EventCallback errorCallback_;
 
         public:
-            typedef boost::function<void()> EventCallback;// 事件的回调处理
-            typedef boost::function<void(Timestmamp)> ReadEventCallback;// 读事件的回调处理
+            typedef boost::function<void()>             EventCallback;      // 事件的回调处理
+            typedef boost::function<void(Timestmamp)>   ReadEventCallback;  // 读事件的回调处理
 
             Channel(Eveq* loop, int fd);// 一个Channel只能由一个EventLoop负责
             ~Channel();

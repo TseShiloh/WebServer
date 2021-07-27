@@ -11,7 +11,7 @@ namespace
     // 当前线程EventLoop对象指针（线程局部存储--非全局变量）
     __thread EventLoop* t_loopInThisThread = 0;
 
-    const int kPollTimeMs = 10000;
+    const int kPollTimeMs = 10000;// 10s
 }
 
 EventLoop* EventLoop::getEventLoopOfCurrentThread() {
@@ -73,10 +73,13 @@ void EventLoop::loop() {    // 事件循环，该函数不能跨线程调用，�
     looping_ = false;
 }
 
+// 该函数可以跨线程调用
 void EventLoop::quit() {
+    // quit_是bool型，在Linux底下bool型是原子性操作，不需要原子性保护
     quit_ = true;
-    if (!isInLoopThread()) {
+    if (!isInLoopThread()) {// 如果不是当前线程调用，则还需唤醒
         //wakeup();
+        // 更好的方法：eventfd
     }
 }
 

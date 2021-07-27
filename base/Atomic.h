@@ -12,7 +12,8 @@ namespace muduo
         class AtomicIntergeT : boost::noncopyable 
         {
             public:
-            AtomicIntergeT() : value_(0) 
+            AtomicIntergeT() 
+                : value_(0) 
             {}
 
             /// 拷贝构造
@@ -31,7 +32,7 @@ namespace muduo
             }
 
             T getAndAdd(T x) {
-                return _syn_fetch_and_add(&value_, x);
+                return _sync_fetch_and_add(&value_, x);
             }
 
             T addAndGet(T x) {
@@ -72,6 +73,7 @@ namespace muduo
             /*
 
         }; // class AtomicIntergeT
+
     } // namespace detail
 
     typedef detail::AtomicIntergeT<int32_t> AtomicInt32;
