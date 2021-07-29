@@ -83,6 +83,24 @@ void EventLoop::quit() {
     }
 }
 
+TimerId EventLoop::runAt(const Timestamp& time, const TimerCallback& cb) {
+  return timerQueue_->addTimer(cb, time, 0.0);// (，到期时间，非重复)
+}
+
+TimerId EventLoop::runAfter(double delay, const TimerCallback& cb) {
+  Timestamp time(addTime(Timestamp::now(), delay));
+  return runAt(time, cb);
+}
+
+TimerId EventLoop::runEvery(double interval, const TimerCallback& cb) {
+  Timestamp time(addTime(Timestamp::now(), interval));
+  return timerQueue_->addTimer(cb, time, interval);
+}
+
+void EventLoop::cancel(TimerId timerId) {
+  return timerQueue_->cancel(timerId);
+}
+
 void Event::updateChannel(Channel* channel) {
     assert(channel->ownerLoop() == this);// 操作channel的应当是所属的本对象
     assertInLoopThread();// 在EventLoop线程当中
@@ -90,7 +108,13 @@ void Event::updateChannel(Channel* channel) {
 }
 
 void EventLoop::removeChannel(Channel* channel) {
-
+    assert(channel->ownerLoop() == this);
+    assertInLoopThread();
+    if (eventHandling_) {
+        assert(currentActiveChannel_ == channel || 
+               std::find(activeChannels_.begin(), activeChannels_.end(), channel) == activeChannels_.end())
+    }
+    poller_->removeChannel(channel);
 }
 
 void EventLoop::abordNotInLoopThread() {

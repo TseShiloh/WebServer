@@ -12,6 +12,7 @@ namespace muduo
     {
         class Channel;
         class Poller;
+        Class TimerQueue;
         
         // EventLoop就是Reactor模式的封装，one per thread at most
         class EventLoop : boost::noncopyable
@@ -21,6 +22,8 @@ namespace muduo
 
             void printActiveChannels() const;
 
+            typedef std::vector<Channel*> ChannelList;
+
             bool looping_;          // 是否处于循环的状态; atomic
             bool quit_;             // 是否退出loop
             bool eventHandling_;    // 当前是否处于事件处理的状态
@@ -29,6 +32,7 @@ namespace muduo
 
             Timestamp pollReturnTime_;// 调用pool()函数时所返回的时间
             boost::scoped_ptr<Poller> poller_;// poller的生存期由EventLoop来控制
+            boost::scoped_ptr<TimeQueue> timerQueue_;
             
             ChannelList activeChannels_;    // Poller返回的活动通道
             Channel* currentActiveChannel_; // 当前正在处理的活动通道
@@ -49,6 +53,33 @@ namespace muduo
             /// Time when poll returns, usually means data arrival.
             ///
             Timestamp pollReturnTime() const { return pollReturnTime_; }
+
+
+            // timers
+
+            ///
+            /// Runs callback at 'time'.
+            /// Safe to call from other threads.
+            ///
+            TimerId runAt(const Timestamp& time, const TimerCallback& cb);
+            
+            ///
+            /// Runs callback after @c delay seconds.
+            /// Safe to call from other threads.
+            ///
+            TimerId runAfter(double delay, const TimerCallback& cb);
+            
+            ///
+            /// Runs callback every @c interval seconds.
+            /// Safe to call from other threads.
+            ///
+            TimerId runEvery(double interval, const TimerCallback& cb);
+
+            ///
+            /// Cancels the timer.
+            /// Safe to call from other threads.
+            ///
+            void cancel(TimerId timerId);
 
             //internal usage
             void updateChannel(Channel* channel);// 在Poller中添加或者更新通道
