@@ -93,14 +93,12 @@ TimerId TimerQueue::addTimer(const TimerCallback& cb,   // 定时器回调函数
 {
     Timer* timer = new Timer(cb, when, interval);
     loop_->runInLoop(boost::bind(&TimerQueue::addTimerInLoop, this, timer));
-    addTimerInLoop(timer);
     return TimerId(timer, timer->sequence());
 }
 
 void TimerQueue::cancel(TimerId timerId) {
     loop_->runInLoop(boost::bind(&TimerQueue::cancelInLoop, this, timerId));
     // runInLoop能保证cancel()跨线程调用
-    cancelInLoop(timerId);
 }
 
 void TimerQueue::addTimerInLoop(Timer* timer) {
@@ -213,7 +211,7 @@ void TimerQueue::reset(const std::vector<Entry>& expired, Timestamp now) {
     }
 }
 
-bool TimeQueue::insert(Timer* timer) {
+bool TimerQueue::insert(Timer* timer) {
     loop_->assertInLoopThread();
     assert(timers_.size() == activeTimers_.size());
     // 最早到期时间是否改变

@@ -76,8 +76,7 @@ namespace muduo
             // timers_与activeTimers_保存的是相同的数据
             // timers_是按照到期时间排序，activeTimers_是按对象地址排序
             ActiveTimerSet activeTimers_;
-            bool callingExpiredTimers_;// atomic
-            // 是否处于调用“处理超时定时器”的过程中
+            bool callingExpiredTimers_;// （原子性操作）是否处于调用“处理超时定时器”的过程中
             ActiveTimerSet cancelingTimers_;// 保存的是被取消的定时器
 
         }; // class TimerQueue
