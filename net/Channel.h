@@ -50,7 +50,7 @@ namespace muduo
             int         index_;     // used by Poller.表示在poll的事件数组中的序号 / 在Epoll中表示通道的状态
             bool        logHup_;    // for POLLHUP
 
-            boost::weak_ptr<void> tie_; // 负责生存期的控制
+            boost::weak_ptr<void> tie_; // 负责生存期的控制；（弱引用的指针）
             bool tied_;
             bool eventHandling_;        // 是否处于处理事件中
             ReadEventCallback readCallback_;
@@ -77,7 +77,7 @@ namespace muduo
 
             /// Tie this channel to the owner object managed by shared_ptr,
             /// prevent the owner object being destroyed in handleEvent.
-            //void tie(const boost::shared_ptr<void>&);
+            void tie(const boost::shared_ptr<void>&);
 
             int fd() const { return fd_; }
             int events() const { return events_; }
