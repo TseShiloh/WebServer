@@ -3,6 +3,7 @@
 #include <WebServer/base/Logging.h>
 #include <WebServer/net/Acceptor.h>
 #include <WebServer/net/EventLoop.h>
+#include <WebServer/net/EventLoopThreadPool.h>
 
 #include <WebServer/net/SocketsOps.h>
 
@@ -20,7 +21,7 @@ TcpServer::TcpServer(EventLoop* loop,
       hostport_(listenAddr.toIpPort()),// 端口号
       name_(nameArg),
       acceptor_(new Acceptor(loop, listenAddr)),// 用智能指针scoped_ptr<Acceptor>来管理
-      threadPool_(new EventLoopThreadPool(pool)),
+      threadPool_(new EventLoopThreadPool(loop)),// 初始化,即是mainReactor，baseLoop_
       connectionCallback_(defaultConnectionCallback),
       messageCallback_(defaultMessageCallback),
       started_(false),// 是否启动
@@ -37,6 +38,22 @@ TcpServer::~TcpServer()
 {
     loop_->assertInLoopThread();
     LOG_TRACE << "TcpServer::~TcpServer [" << name_ << "] destructing";
+
+    for (ConnectionMap::iterator it(connections_.begin()); 
+         it != connections_.end(); ++it)
+    {
+        TcpConnectionPtr conn = it->second;
+        it->second.reset();		// 释放当前所控制的对象，引用计数减一
+        conn->getLoop()->runInLoop(boost::bind(&TcpConnection::connectDestroyed, conn));
+        conn.reset();			// 释放当前所控制的对象，引用计数减一
+    }
+}
+
+void TcpServer::setThreadNum(int numThreads)
+{
+    assert(numThreads >= 0);
+    threadPool_->setThreadNum(numThreads);// 设置线程池中的IO线程个数，
+    // 但是不包含主EventLoop所属的线程，即IO线程总数 = numThreads + 1
 }
 
 // 该函数多次调用是无害的
@@ -45,6 +62,8 @@ void TcpServer::start()
 {
     if (!started_) {
         started_ = true;
+        threadPool_->start(threadInitCallback_);
+
     }
 
     if (!acceptor_->listenning()) {
@@ -57,6 +76,8 @@ void TcpServer::start()
 void TcpServer::newConnection(int sockfd, const InerAddress& peerAddr)
 {
     loop_->assertInLoopThread();
+    // 按照轮询的方式选择一个EventLoop
+    EventLoop* ioLoop = threadPool_->getNextLoop();
     char buf[32];
     snprintf(buf, sizeof buf, ":%s#%d", hostport_.c_str(), nextConnId_);
     ++nextConnId_;
@@ -68,11 +89,12 @@ void TcpServer::newConnection(int sockfd, const InerAddress& peerAddr)
     InetAddress localAddr(sockets::getLocalAddr(sockfd));
     // FIXME poll with zero timeout to double confirm the new connection
     // FIXME use make_shared if necessary
-    TcpConnectionPtr conn(new TcpConnection(loop_, 
+    TcpConnectionPtr conn(new TcpConnection(ioLoop, 
                                             connName, 
                                             sockfd,
                                             localAddr, 
                                             peerAddr));
+
     LOG_TRACE << "[1] usecount=" << conn.use_count();
     connections_[connName] = conn;
     LOG_TRACE << "[2] usecount=" << conn.use_count();
@@ -82,12 +104,40 @@ void TcpServer::newConnection(int sockfd, const InerAddress& peerAddr)
     conn->setCloseCallback(
         boost::bind(&TcpServer::removeConnection, this, _1));
 
-    conn->connectEstablished();
+    // conn->connectEstablished();// 在当前IO线程中调用（即loop_）
+    ioLoop->runInLoop(
+        boost::bind(&TcpConnection::connectEstablished, conn));
+
     LOG_TRACE << "[5] usecount=" << conn.use_count();
 
 }
 
 void TcpServer::removeConnection(const TcpConnectionPtr& conn)
+{
+	/*
+  loop_->assertInLoopThread();
+  LOG_INFO << "TcpServer::removeConnectionInLoop [" << name_
+           << "] - connection " << conn->name();
+
+
+  LOG_TRACE << "[8] usecount=" << conn.use_count();
+  size_t n = connections_.erase(conn->name());
+  LOG_TRACE << "[9] usecount=" << conn.use_count();
+
+  (void)n;
+  assert(n == 1);
+  
+  loop_->queueInLoop(
+      boost::bind(&TcpConnection::connectDestroyed, conn));
+  LOG_TRACE << "[10] usecount=" << conn.use_count();
+  */
+
+    loop_->runInLoop(
+        boost::bind(&TcpServer::removeConnectionInLoop, this, conn));
+
+}
+
+void TcpServer::removeConnectionInLoop(const TcpConnectionPtr& conn)
 {
     loop_->assertInLoopThread();
     LOG_INFO << "TcpServer::removeConnectionInLoop [" << name_
@@ -101,6 +151,7 @@ void TcpServer::removeConnection(const TcpConnectionPtr& conn)
     (void)n;
     assert(n == 1);
 
+    EventLoop* ioLoop = conn->getLoop();
     loop_->queueInLoop(
         boost::bind(&TcpConnection::connectDestroyed, conn));
     // 此处得到一个boost::function对象并将conn传递进去，因此引用计数+1
