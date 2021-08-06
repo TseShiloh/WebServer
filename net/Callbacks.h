@@ -21,6 +21,7 @@ namespace muduo
         // the data has been read to (buf, len)
         typedef boost::function<void (const TcpConnectionPtr&, Buffer*, Timestamp)> MessageCallback;
 
+        // 函数的实现在TcpConnection.cc里
         void defaultConnectionCallback(const TcpConnectionPtr& conn);
         void defaultMessageCallback(const TcpConnectionPtr& conn, Buffer* buffer, Timestamp receiveTime);
 							

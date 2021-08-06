@@ -14,8 +14,23 @@
 using namespace muduo;
 using namespace muduo::net;
 
+void muduo::net::defaultConnectionCallback(const TcpConnectionPtr& conn)
+{
+    LOG_TRACE << conn->locaAddress().toIpPort() << " -> "
+              << conn->peerAddress().toIpPort() << " is "
+              << (conn->connected()? "UP" : "DOWN");
+}
+
+void muduo::net::defaultMessageCallback(const TcpConnectionPtr&,
+                                        Buffer* buf,
+                                        Timestamp)
+{
+    buf->retrieveAll();
+}
+
+
 TcpConnection::TcpConnection(EventLoop* loop,
-                          const string& name,
+                          const string& nameArg,
                           int sockfd,
                           const InetAddress& localAddr,
                           const InetAddress& peerAddr)
@@ -48,6 +63,96 @@ TcpConnection::~TcpConnection()
 {
     LOG_DEBUG << "TcpConnection::dtor[" << name_ << "] at" << this
               << " fd=" << channel_->fd();
+}
+
+// 线程安全，可以跨线程调用
+void TcpConnection::send(const void* data, size_t len)
+{
+    if (state_ == kConnected) {
+        if (loop_->isInLoopThread()) {// 本线程调用
+            sendInLoop(data, len);
+        }
+        else {// 跨线程调用
+            string message(static_cast<const char*>(data), len);
+            loop_->runInLoop(
+                boost::bind(&TcpConnection::sendInLoop,
+                            this,
+                            message));
+        }
+    }
+}
+
+// 线程安全，可以跨线程调用
+void send(const StringPiece& message)
+{
+    if (state_ == kConnected) {
+        if (loop_->isInLoopThread()) {// 本线程调用
+            sendInLoop(message);
+        }
+        else {// 跨线程调用
+            loop_->runInLoop(
+                boost::bind(&TcpConnection::sendInLoop,
+                            this,
+                            message.as_string()));
+                            //std::forward<string>(message)));
+        }
+    }
+}
+
+// 线程安全，可以跨线程调用
+void TcpConnection::send(Buffer* buf)
+{
+    if (state_ == kConnected)
+    {
+        if (loop_->isInLoopThread()) {
+        sendInLoop(buf->peek(), buf->readableBytes());
+        buf->retrieveAll();
+        }
+        else {
+        loop_->runInLoop(
+            boost::bind(&TcpConnection::sendInLoop,
+                        this,
+                        buf->retrieveAllAsString()));
+                        //std::forward<string>(message)));
+        }
+    }
+}
+
+void TcpConnection::sendInLoop(const StringPiece& message)
+{
+    sendInLoop(message.data(), message.size());
+}
+
+void TcpConnection::sendInLoop(const void* data, size_t len)
+{
+    loop_->assertInLoopThread();
+    sockets::write(channel_->fd(), data, len);
+}
+
+void TcpConnection::shutdown()
+{
+    // FIXME: use compare and swap
+    if (state_ == kConnected)// 没有保护这个状态，可以用原子性操作
+    {
+        setState(kDisconnecting);
+        loop_->runInLoop(boost::bind(&TcpConnection::shutdownInLoop, this));
+        // FIXME: this -> shared_from_this() ?
+    }
+}
+
+void TcpConnection::shutdownInLoop()
+{
+    loop_->assertInLoopThread();
+    if (!channel_->isWriting())// 如果还有数据没发送完，那么只是将状态改为“kDisconnecting”，并没有关闭连接
+    {
+        // we are not writing
+        socket_->shutdownWrite();// 关闭“写”
+    }
+}
+
+void TcpConnection::setTcpNoDelay(bool on)
+{
+    socket_->setTcpNoDelay(on);
 }
 
 void TcpConnection::connectEstablished()
