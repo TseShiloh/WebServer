@@ -32,7 +32,7 @@ namespace muduo
         class Buffer : public muduo::copyable
         {
         private:
-            std::vector<char> buffer_;	// vector用于替代固定大小数组
+            std::vector<char> buffer_;	    // buffer_是动态数组
             size_t readerIndex_;			// 读位置
             size_t writerIndex_;			// 写位置
 
@@ -74,7 +74,7 @@ namespace muduo
 
             // 查找"\r\n"
             const char* findCRLF() const {
-                const char* crlf = std::search(peek(), beginWrite(), kCRLF, kCRLF + 2)；
+                const char* crlf = std::search(peek(), beginWrite(), kCRLF, kCRLF + 2);
                 return crlf = beginWrite() ? NULL : crlf;
             }
 
