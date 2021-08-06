@@ -11,7 +11,7 @@
 #include <WebServer/base/StringPiece.h>
 #include <WebServer/base/Types.h>
 #include <WebServer/net/Callbacks.h>
-//#include <WebServer/net/Buffer.h>
+#include <WebServer/net/Buffer.h>
 #include <WebServer/net/InetAddress.h>
 
 //#include <boost/any.hpp>
@@ -40,6 +40,9 @@ namespace muduo
             void handleRead(Timestamp receiveTime);
             void handleClose();
             void handleError();
+            void sendInLoop(const StringPiece& message);
+            void sendInLoop(const void* message, size_t len);
+            void shutdownInLoop();
             void setState(StateE s) { state_ = s; }
 
             EventLoop* loop_;   // 所属的EventLoop
@@ -54,6 +57,8 @@ namespace muduo
             ConnectionCallback connectionCallback_;
             MessageCallback messageCallback_;
             CloseCallback closeCallback_;
+            Buffer inputBuffer_;        // 应用层接收缓冲区
+            Buffer outputBuffer_;       // 应用层发送缓冲区
 
         public:
             /// Constructs a TcpConnection with a connected sockfd
@@ -72,11 +77,22 @@ namespace muduo
             const InetAddress& peerAddress()  { return peerAddr_; }
             bool connected() const { return state_ == kConnected; }
 
+            // void send(string&& message); // C++11
+            void send(const void* message, size_t len);
+            void send(const StringPiece& message);
+            // void send(Buffer&& message); // C++11
+            void send(Buffer* message);// this one will swap data
+            void shutdown();// NOT thread safe, no simultaneous calling
+            void setTcpNoDelay(bool on);
+
             void setConnectionCallback(const ConnectionCallback& cb)
             { connectionCallback_ = cb; }
 
             void setMessageCallback(const MessageCallback& cb)
             { messageCallback_ = cb; }
+
+            Buffer* inputBuffer()
+            { return &inputBuffer_; }
 
             /// Internal use only.
             void setCloseCallback(const CloseCallback& cb)

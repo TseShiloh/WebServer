@@ -22,7 +22,7 @@ TcpServer::TcpServer(EventLoop* loop,
       name_(nameArg),
       acceptor_(new Acceptor(loop, listenAddr)),// 用智能指针scoped_ptr<Acceptor>来管理
       threadPool_(new EventLoopThreadPool(loop)),// 初始化,即是mainReactor，baseLoop_
-      connectionCallback_(defaultConnectionCallback),
+      connectionCallback_(defaultConnectionCallback),// 声明在Callbacks.h
       messageCallback_(defaultMessageCallback),
       started_(false),// 是否启动
       nextConnId_(1)
