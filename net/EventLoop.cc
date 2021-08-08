@@ -1,12 +1,18 @@
-#include <muduo/net/EventLooping.h>
-#include <muduo/base/Logging.h>
+#include <WebServer/net/EventLooping.h>
+#include <WebServer/base/Logging.h>
+#include <WebServer/net/Channel.h>
+#include <WebServer/net/Poller.h>
+#include <WebServer/net/TimerQueue.h>
 
-#include <poll.h>
+#include <boost/bind.hpp>
+
+#include <signal.h>
+#include <sys/eventfd.h>
 
 using namespace muduo;
 using namespace muduo::net;
 
-namespace
+namespace // 匿名的名称空间
 {
     // 当前线程EventLoop对象指针（线程局部存储--非全局变量）
     __thread EventLoop* t_loopInThisThread = 0;
@@ -14,8 +20,26 @@ namespace
     const int kPollTimeMs = 10000;// 10s
 
     int createEventfd() {
-        int evtfd = ::eventfd(0, )
+        int evtfd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+        if (evtfd < 0) {
+            LOG_SYSERR << "Failed in eventfd";
+            abort();
+        }
+        return evtfd;
     }
+
+    #pragma GCC diagnostic ignored "-Wold-style-cast"
+    class IgnoreSigPipe
+    {
+    public:
+        IgnoreSigPipe() {
+            ::signal(SIGPIPE, SIG_IGN);
+            LOG_TRACE << "Ignore SIGPIPE";
+        }
+    };
+    #pragma GCC diagnostic error "-Wold-style-cast"
+
+    IgnoreSigPipe initObj;
 }
 
 EventLoop* EventLoop::getEventLoopOfCurrentThread() {
@@ -26,6 +50,7 @@ EventLoop::EventLoop()
     : looping_(false),// 初始化为false表示当前还没有处于循环的状态
       quit_(false),
       eventHandling_(false),
+      callingPendingFunctors_(false),
       threadId_(CurrentThread::tid())// 把当前线程的真实id初始化给threadId_
       poller_(Poller::newDefaultPoller(this)),
       timerQueue_(new TimerQueue(this)),
@@ -43,11 +68,13 @@ EventLoop::EventLoop()
     else {
         t_loopInThisThread = this;
     }
-    wakeupChannel_->setReadCallback(boost::bind(&EventLoop::handleRead, this));
+    wakeupChannel_->setReadCallback(
+        boost::bind(&EventLoop::handleRead, this));
     wakeupChannel_->enableReading();// 纳入到poller来管理
 }
 
 EventLoop::~EventLoop() {
+    ::close(wakeupFd_);
     t_loopInThisThread = NULL;
 }
 
@@ -55,6 +82,7 @@ void EventLoop::loop() {    // 事件循环，该函数不能跨线程调用，�
     assert(!looping_);      // 断言还没有循环
     assertInLoopThread();   // 断言当前处于“创建该线程”的对象当中
     looping_ = true;
+    quit_ = false;
     LOG_TRACE << "EventLoop " << this << " start looping";
 
     //::poll(NULL, 0, 5*1000);
@@ -161,7 +189,8 @@ void EventLoop::abordNotInLoopThread() {
 
 void EventLoop::wakeup() {// 一个线程可以唤醒另一个线程
     uint64_t one = 1;// 8个字节的缓冲区
-    ssize_t n = sockets::write(wakeupfd_, &one, sizeof one);// 写入8个字节
+    //ssize_t n = sockets::write(wakeupFd_, &one, sizeof one);// 写入8个字节
+    ssize_t n = ::write(wakeupFd_, &one, sizeof one);
     if (n != sizeof one) {
         LOG_ERROR << "EventLoop::wakeup() writes " << n << " bytes instead of 8";
     }
@@ -169,9 +198,10 @@ void EventLoop::wakeup() {// 一个线程可以唤醒另一个线程
 
 void EventLoop::handleRead() {
     unit64_t one = 1;
-    ssize_t n = sockets::read(wakeupFd_, &one, sizeof one);
+    //ssize_t n = sockets::read(wakeupFd_, &one, sizeof one);
+    ssize_t n = ::read(wakeupFd_, &one, sizeof one);
     if (n != sizeof one) {
-        LOG_ERROR << "EventLoop::wakeup() writes " << n << " bytes instead of 8";
+        LOG_ERROR << "EventLoop::handleRead() reads " << n << " bytes instead of 8";
     }
 }
 

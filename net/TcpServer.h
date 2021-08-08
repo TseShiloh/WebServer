@@ -44,6 +44,8 @@ namespace muduo
             boost::scoped_ptr<EventLoopThreadPool> threadPool_;
             ConnectionCallback connectionCallback_; // “连接到来”的回调函数
             MessageCallback messageCallback_;       // “消息到来”的回调函数
+            WriteCompleteCallback writeCompleteCallback_;// 数据发送完毕，会回调此函数
+            ThreadInitCallback threadInitCallback_;      // IO线程池中的线程在进入事件循环前，会回调用此函数
             bool started_;      // 是否已经启动了
             // always in loop thread
             int nextConnId_;    // 下一个连接ID
