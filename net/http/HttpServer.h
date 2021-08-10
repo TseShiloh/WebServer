@@ -20,8 +20,8 @@ namespace muduo
         class HttpServer : boost::noncopyable
         {
         private:
-            TcpServer server_;
-            HttpCallback httpCallback_;
+            TcpServer     server_;
+            HttpCallback  httpCallback_; // 在处理http请求（即调用onRequest）的过程中回调此函数，对请求进行具体的处理
 
             void onConnection(const TcpConnectionPtr& conn);
             void onMessage(const TcpConnectionPtr& conn,
@@ -30,11 +30,28 @@ namespace muduo
             void onRequest(const TcpConnectionPtr&, const HttpRequest&);
 
         public:
-            typedef boost::function<void (const HttpRequest&, HttpResponse*)> HttpCallback;
+            typedef boost::function<void (const HttpRequest&, 
+                                          HttpResponse*)> HttpCallback;
             
-            HttpServer();
+            HttpServer(EventLoop* loop,
+                       const InetAddress& listenAddr,
+                       const string& name);
+
             ~HttpServer();
-        };
+
+            void start();
+
+            /// Not thread safe, callback be registered before calling start().
+            void setHttpCallBack(const HttpCallback& cb) {
+                httpCallback_ = cb;
+            }
+
+            // 支持多线程
+            void setThreadNum(int numThreads) {
+                server_.setThreadNum(numThreads);
+            }
+
+        }; // class HttpServer
         
     } // namespace net
     
