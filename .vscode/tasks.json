@@ -18,7 +18,10 @@
             },
             "problemMatcher": [
                 "$gcc"
-            ]
+            ],
+            "presentation": { 
+                "panel": "shared" //默认为“shared“表示共享，改成new之后每个进程创建新的端口
+            }
         }
     ]
 }
